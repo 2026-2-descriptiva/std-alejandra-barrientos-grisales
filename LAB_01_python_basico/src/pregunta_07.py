@@ -1,3 +1,5 @@
+from .lectura_data import DATA
+
 def pregunta_07():
     """
     Para cada valor distinto de la segunda columna (`value`), construya la
@@ -10,5 +12,15 @@ def pregunta_07():
 
         [(0, ["C"]), (1, ["E", "B", "E"]), (2, ["A", "E"]), ...]
     """
+    resultado = {}
 
-    raise NotImplementedError
+    for letter, value, *_ in DATA:
+        value = int(value)
+
+        if value not in resultado:
+            resultado[value] = []
+
+        resultado[value].append(letter) 
+
+
+    return sorted(resultado.items())

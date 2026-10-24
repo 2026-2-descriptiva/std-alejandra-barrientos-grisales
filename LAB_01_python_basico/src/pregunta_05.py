@@ -1,3 +1,5 @@
+from .lectura_data import DATA
+
 def pregunta_05():
     """
     Para cada letra de la primera columna (`letter`), encuentre el valor
@@ -9,4 +11,18 @@ def pregunta_05():
         [("A", 9, 2), ("B", 9, 1), ...]
     """
 
-    raise NotImplementedError
+    resultado = {}
+
+    for letter, value, *_ in DATA:
+        value = int(value)
+
+        if letter not in resultado:
+            resultado[letter] = [value, value]
+        else:
+            resultado[letter][0] = max(resultado[letter][0], value)
+            resultado[letter][1] = min(resultado[letter][1], value)
+
+    return [
+        (letter, maximo, minimo)
+        for letter, (maximo, minimo) in sorted(resultado.items())
+    ]

@@ -1,3 +1,6 @@
+from .lectura_data import DATA
+
+
 def pregunta_01():
     """
     Calcule la suma de los valores de la segunda columna (`value`) del
@@ -8,4 +11,4 @@ def pregunta_01():
         214
     """
 
-    raise NotImplementedError
+    return sum(int(row[1]) for row in DATA)

@@ -1,3 +1,5 @@
+from .lectura_data import DATA
+
 def pregunta_04():
     """
     Cuente cuántos registros hay en cada mes, usando la fecha de la tercera
@@ -9,4 +11,10 @@ def pregunta_04():
         [("01", 3), ("02", 4), ("03", 2), ...]
     """
 
-    raise NotImplementedError
+    resultado = {}
+
+    for row in DATA:
+        mes = row[2].split("-")[1]
+        resultado[mes] = resultado.get(mes, 0) + 1
+
+    return sorted(resultado.items())

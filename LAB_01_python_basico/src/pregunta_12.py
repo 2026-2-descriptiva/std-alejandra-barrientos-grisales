@@ -1,3 +1,5 @@
+from .lectura_data import DATA
+
 def pregunta_12():
     """
     Para cada letra de la primera columna (`letter`), sume todos los valores
@@ -9,4 +11,18 @@ def pregunta_12():
         {"A": 177, "B": 187, "C": 114, ...}
     """
 
-    raise NotImplementedError
+    resultado = {}
+
+    for row in DATA:
+        letra = row[0]
+        metrics = row[4]
+        suma = 0
+
+        if metrics:
+            for elemento in metrics.split(","):
+                clave, valor = elemento.split(":")
+                suma += int(valor)
+
+        resultado[letra] = resultado.get(letra, 0) + suma
+
+    return dict(sorted(resultado.items()))

@@ -1,3 +1,6 @@
+from .lectura_data import DATA
+
+
 def pregunta_03():
     """
     Sume los valores de la segunda columna (`value`) para cada letra de la
@@ -9,4 +12,8 @@ def pregunta_03():
         [("A", 53), ("B", 36), ("C", 27), ...]
     """
 
-    raise NotImplementedError
+    resultado = {}
+    for letter, value, *_ in DATA:
+        resultado[letter] = resultado.get(letter, 0) + int(value)
+
+    return sorted(resultado.items())
