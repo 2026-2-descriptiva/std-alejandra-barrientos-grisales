@@ -1,3 +1,5 @@
+from .lectura_data import tbl0
+
 def pregunta_03():
     """
     Usando `data/tbl0.tsv`, cuente cuántos registros hay para cada categoría
@@ -13,4 +15,4 @@ def pregunta_03():
         ...
     """
 
-    raise NotImplementedError
+    return tbl0["c1"].value_counts().sort_index()

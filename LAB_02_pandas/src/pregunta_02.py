@@ -1,4 +1,4 @@
-from pathlib import Path
+from .lectura_data import tbl0
 
 import pandas as pd
 
@@ -11,7 +11,5 @@ def pregunta_02():
 
         4
     """
-
-    data_path = Path(__file__).resolve().parents[1] / "data" / "tbl0.tsv"
-    tabla = pd.read_csv(data_path, sep="\t")
+    return len(tbl0.columns)
     return len(tabla.columns)

@@ -1,3 +1,6 @@
+import pandas as pd
+from pathlib import Path
+
 def pregunta_01():
     """
     Las frases de este laboratorio no están en una tabla, sino en miles de
@@ -26,4 +29,46 @@ def pregunta_01():
         ...
     """
 
-    raise NotImplementedError
+   
+
+
+    base_path = Path(__file__).resolve().parents[1]
+    data_path = base_path / "data"
+    submission_path = base_path / "submission"
+
+    submission_path.mkdir(parents=True, exist_ok=True)
+
+    for division in ["train", "test"]:
+        registros = []
+        division_path = data_path / division
+
+        # Recorrer las carpetas de sentimientos en orden alfabético
+        carpetas = sorted(
+            carpeta for carpeta in division_path.iterdir()
+            if carpeta.is_dir()
+        )
+
+        for carpeta in carpetas:
+            # Recorrer los archivos .txt en orden alfabético
+            archivos = sorted(carpeta.rglob("*.txt"))
+
+            for archivo in archivos:
+                frase = archivo.read_text(encoding="utf-8").strip()
+
+                registros.append({
+                    "phrase": frase,
+                    "target": carpeta.name
+                })
+
+        # Construir el DataFrame con Pandas
+        dataset = pd.DataFrame(
+            registros,
+            columns=["phrase", "target"]
+        )
+
+        # Guardar el CSV sin índice
+        ruta_salida = submission_path / f"{division}_dataset.csv"
+        dataset.to_csv(ruta_salida, index=False)
+
+
+pregunta_01()

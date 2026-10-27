@@ -1,4 +1,4 @@
-"""Carga de las tablas tabuladas usadas en el laboratorio."""
+
 
 from pathlib import Path
 

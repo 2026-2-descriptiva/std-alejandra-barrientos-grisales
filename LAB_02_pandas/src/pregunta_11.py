@@ -1,3 +1,5 @@
+from .lectura_data import tbl1
+
 def pregunta_11():
     """
     En `data/tbl1.tsv`, cada valor de la columna `c0` aparece en varias
@@ -15,4 +17,4 @@ def pregunta_11():
         ...
     """
 
-    raise NotImplementedError
+    return tbl1.groupby('c0')['c4'].apply(lambda x: ','.join(sorted(x))).reset_index()

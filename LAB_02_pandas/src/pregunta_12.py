@@ -1,3 +1,4 @@
+from .lectura_data import tbl2
 def pregunta_12():
     """
     En `data/tbl2.tsv`, cada valor de la columna `c0` aparece en varias
@@ -15,4 +16,13 @@ def pregunta_12():
         ...
     """
 
-    raise NotImplementedError
+    tbl2["c5"] = tbl2["c5a"].astype(str) + ":" + tbl2["c5b"].astype(str)
+
+    resultado = (
+        tbl2.groupby("c0")["c5"]
+        .apply(lambda grupo: ",".join(sorted(grupo)))
+        .reset_index()
+        .sort_values("c0")
+    )
+
+    return resultado

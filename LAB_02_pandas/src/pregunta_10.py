@@ -1,3 +1,5 @@
+
+from .lectura_data import tbl0
 def pregunta_10():
     """
     Usando `data/tbl0.tsv`, construya para cada categoría de la columna `c1`
@@ -15,4 +17,11 @@ def pregunta_10():
         ...
     """
 
-    raise NotImplementedError
+    resultado = (
+        tbl0.groupby("c1")["c2"]
+        .apply(lambda grupo: ":".join(grupo.sort_values().astype(str)))
+        .to_frame()
+        .sort_index()
+    )
+
+    return resultado

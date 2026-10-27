@@ -1,3 +1,5 @@
+from .lectura_data import tbl0
+
 def pregunta_05():
     """
     Usando `data/tbl0.tsv`, encuentre el valor máximo de la columna `c2` para
@@ -13,4 +15,4 @@ def pregunta_05():
         ...
     """
 
-    raise NotImplementedError
+    return tbl0.groupby("c1")["c2"].max().sort_index()

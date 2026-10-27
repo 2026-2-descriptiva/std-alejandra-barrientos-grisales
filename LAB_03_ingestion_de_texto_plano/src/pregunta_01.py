@@ -1,3 +1,7 @@
+import pandas as pd
+import re
+from pathlib import Path
+
 def pregunta_01():
     """
     El archivo `data/clusters_report.txt` es un reporte de clústeres de
@@ -25,5 +29,67 @@ def pregunta_01():
         1        2                         102                          15.4
         ...
     """
+    data_path = Path(__file__).resolve().parents[1] / "data" / "clusters_report.txt"
 
-    raise NotImplementedError
+    registros = []
+    cluster_actual = None
+    palabras_clave = []
+
+    with open(data_path, "r", encoding="utf-8") as archivo:
+        for linea in archivo:
+            coincidencia = re.match(
+                r"^\s*(\d+)\s+(\d+)\s+([\d,]+)\s*%\s+(.*)$",
+                linea
+            )
+
+            if coincidencia:
+                if cluster_actual is not None:
+                    texto = re.sub(
+                        r"\s+", " ", " ".join(palabras_clave)
+                    ).strip()
+                    palabras = [
+                        palabra.strip()
+                        for palabra in texto.split(",")
+                        if palabra.strip()
+                    ]
+                    if palabras:
+                        palabras[-1] = palabras[-1].rstrip(".")
+
+                    cluster_actual["principales_palabras_clave"] = ", ".join(palabras)
+                    registros.append(cluster_actual)
+
+                cluster_actual = {
+                    "cluster": int(coincidencia.group(1)),
+                    "cantidad_de_palabras_clave": int(coincidencia.group(2)),
+                    "porcentaje_de_palabras_clave": float(
+                        coincidencia.group(3).replace(",", ".")
+                    ),
+                }
+
+                palabras_clave = [coincidencia.group(4).strip()]
+
+            elif cluster_actual is not None and linea.strip():
+                if not set(linea.strip()) == {"-"}:
+                    palabras_clave.append(linea.strip())
+
+    if cluster_actual is not None:
+        texto = re.sub(
+            r"\s+", " ", " ".join(palabras_clave)
+        ).strip()
+        palabras = [
+            palabra.strip()
+            for palabra in texto.split(",")
+            if palabra.strip()
+        ]
+        if palabras:
+            palabras[-1] = palabras[-1].rstrip(".")
+
+        cluster_actual["principales_palabras_clave"] = ", ".join(palabras)
+        registros.append(cluster_actual)
+
+    return pd.DataFrame(registros, columns=[
+        "cluster",
+        "cantidad_de_palabras_clave",
+        "porcentaje_de_palabras_clave",
+        "principales_palabras_clave",
+    ])

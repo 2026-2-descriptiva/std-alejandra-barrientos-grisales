@@ -1,3 +1,5 @@
+from .lectura_data import tbl0
+
 def pregunta_08():
     """
     Retorne la tabla `data/tbl0.tsv` completa con una columna adicional
@@ -12,4 +14,5 @@ def pregunta_08():
         ...
     """
 
-    raise NotImplementedError
+    tbl0["suma"] = tbl0["c0"] + tbl0["c2"]
+    return tbl0 
