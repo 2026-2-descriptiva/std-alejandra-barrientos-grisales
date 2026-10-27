@@ -14,6 +14,6 @@ def pregunta_09():
         2    2  B   5  1998-05-02  1998
         ...
     """
-
+    #revision
     tbl0["year"] = tbl0["c3"].str[:4]
     return tbl0
