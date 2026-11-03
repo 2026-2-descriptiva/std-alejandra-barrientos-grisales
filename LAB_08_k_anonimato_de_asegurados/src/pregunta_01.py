@@ -1,6 +1,235 @@
+
+from pathlib import Path
+import pandas as pd
+import json
+
+
+def lectura_datos():
+    activity_dir = Path(__file__).resolve().parents[1]
+    data_path = activity_dir / "data" / "insurance.csv.gz"
+
+    return pd.read_csv(data_path, compression="gzip")
+
+
+def crear_grupos(df):
+    df = df.copy()
+
+    # Grupo de edad
+    df["age_group"] = pd.cut(
+        df["age"],
+        bins=[17, 29, 39, 49, 64],
+        labels=["18-29", "30-39", "40-49", "50-64"]
+    )
+
+    # Grupo de IMC
+    df["bmi_group"] = pd.cut(
+        df["bmi"],
+        bins=[float("-inf"), 18.5, 25, 30, float("inf")],
+        labels=["bajo peso", "normal", "sobrepeso", "obesidad"],
+        right=False
+    )
+
+    # Grupo de hijos
+    df["children_group"] = pd.cut(
+        df["children"],
+        bins=[-1, 0, 2, float("inf")],
+        labels=["0", "1-2", "3+"]
+    )
+
+    return df
+
+
+def calcular_original(df):
+    columnas = [
+        "age", "sex", "bmi", "children", "region"
+    ]
+
+    tamanos = df.groupby(
+        columnas,
+        dropna=False,
+        observed=True
+    ).size()
+
+    original_k = int(tamanos.min())
+
+    original_unique_records = int(
+        tamanos[tamanos == 1].sum()
+    )
+
+    return original_k, original_unique_records
+
+
+def evaluar_esquema(df, nombre, columnas, k=5):
+    # Tamaño de cada clase de equivalencia
+    tamanos = df.groupby(
+        columnas,
+        dropna=False,
+        observed=True
+    ).size()
+
+    equivalence_classes = len(tamanos)
+
+    k_before_suppression = int(tamanos.min())
+
+    # Clases que cumplen k-anonimato
+    clases_publicadas = tamanos[tamanos >= k]
+
+    # Identificar registros que pertenecen a clases publicadas
+    claves_publicadas = df.set_index(columnas).index.isin(
+        clases_publicadas.index
+    )
+
+    publicados = df.loc[claves_publicadas].copy()
+
+    suppressed_records = len(df) - len(publicados)
+
+    # Identificar clases sin diversidad de fumadores
+    diversidad = publicados.groupby(
+        columnas,
+        dropna=False,
+        observed=True
+    )["smoker"].nunique()
+
+    clases_sin_diversidad = diversidad[diversidad == 1]
+
+    records_without_smoker_diversity = int(
+        publicados.groupby(
+            columnas,
+            dropna=False,
+            observed=True
+        ).size().loc[clases_sin_diversidad.index].sum()
+    )
+
+    reporte = {
+        "quasi_identifiers": columnas,
+        "equivalence_classes": int(equivalence_classes),
+        "k_before_suppression": k_before_suppression,
+        "suppressed_records": int(suppressed_records),
+        "published_records": int(len(publicados)),
+        "published_classes": int(len(clases_publicadas)),
+        "classes_without_smoker_diversity": int(
+            len(clases_sin_diversidad)
+        ),
+        "records_without_smoker_diversity": records_without_smoker_diversity
+    }
+
+    return reporte, publicados
+
+
 def pregunta_01():
-    """
-    Una aseguradora quiere publicar datos de sus afiliados para que un grupo
+    df = lectura_datos()
+
+    # Calcular métricas originales
+    original_k, original_unique_records = calcular_original(df)
+
+    # Crear grupos generalizados
+    df = crear_grupos(df)
+
+    # Definir esquemas
+    esquemas = {
+        "with_children": [
+            "age_group",
+            "sex",
+            "bmi_group",
+            "children_group",
+            "region"
+        ],
+        "without_children": [
+            "age_group",
+            "sex",
+            "bmi_group",
+            "region"
+        ]
+    }
+
+    resultados = {}
+
+    for nombre, columnas in esquemas.items():
+        reporte, publicados = evaluar_esquema(
+            df,
+            nombre,
+            columnas,
+            k=5
+        )
+
+        resultados[nombre] = {
+            "report": reporte,
+            "data": publicados
+        }
+
+    # Seleccionar esquema que suprime menos registros
+    selected_scheme = min(
+        resultados,
+        key=lambda nombre: resultados[nombre]["report"]["suppressed_records"]
+    )
+
+    df_publicado = resultados[selected_scheme]["data"]
+
+    # Calcular métricas originales y publicadas
+    mean_charges_original = float(df["charges"].mean())
+    mean_charges_published = float(df_publicado["charges"].mean())
+
+    smoker_rate_original = float(
+        (df["smoker"] == "yes").mean()
+    )
+
+    smoker_rate_published = float(
+        (df_publicado["smoker"] == "yes").mean()
+    )
+
+    # Construir reporte
+    reporte_final = {
+        "original_k": original_k,
+        "original_unique_records": original_unique_records,
+        "schemes": {
+            nombre: resultados[nombre]["report"]
+            for nombre in esquemas
+        },
+        "selected_scheme": selected_scheme,
+        "mean_charges_original": mean_charges_original,
+        "mean_charges_published": mean_charges_published,
+        "smoker_rate_original": smoker_rate_original,
+        "smoker_rate_published": smoker_rate_published
+    }
+
+    # Preparar directorio de salida
+    activity_dir = Path(__file__).resolve().parents[1]
+    submission_dir = activity_dir / "submission"
+    submission_dir.mkdir(parents=True, exist_ok=True)
+
+    # Guardar reporte JSON
+    with open(
+        submission_dir / "privacy_report.json",
+        "w",
+        encoding="utf-8"
+    ) as archivo:
+        json.dump(
+            reporte_final,
+            archivo,
+            indent=4,
+            ensure_ascii=False
+        )
+
+    # Guardar registros publicados
+    columnas_salida = (
+        esquemas[selected_scheme] + ["smoker", "charges"]
+    )
+
+    df_publicado[columnas_salida].to_csv(
+        submission_dir / "insurance_published.csv",
+        index=False
+    )
+
+    return reporte_final
+
+
+
+pregunta_01()
+
+
+
+"""
+Una aseguradora quiere publicar datos de sus afiliados para que un grupo
     de investigación estudie el costo de los seguros, sin que nadie pueda
     reconocer a una persona. El archivo `data/insurance.csv.gz` tiene una fila
     por afiliado con su edad (`age`), sexo (`sex`), índice de masa corporal
@@ -78,6 +307,4 @@ def pregunta_01():
           },
           ...
         }
-    """
-
-    raise NotImplementedError
+"""
