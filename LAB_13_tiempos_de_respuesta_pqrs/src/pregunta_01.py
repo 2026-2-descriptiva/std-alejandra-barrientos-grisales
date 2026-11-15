@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from pathlib import Path
 
 
 def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -61,4 +63,85 @@ def pregunta_01() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         ...
     """
 
-    raise NotImplementedError
+    lab_dir = Path(__file__).resolve().parents[1]
+    frames = []
+
+    for channel in ("letter", "web"):
+        path = lab_dir / "data" / f"historical_requests_{channel}.csv.gz"
+        data = pd.read_csv(path).drop_duplicates()
+        data["channel"] = channel
+        data["in_date"] = pd.to_datetime(data["in_date"])
+        data["out_date"] = pd.to_datetime(data["out_date"])
+        data["year"] = data["in_date"].dt.year
+        data["answered"] = data["out_date"].notna()
+        data["business_days"] = pd.NA
+        data["calendar_days"] = pd.NA
+
+        answered = data["answered"]
+        entry_dates = data.loc[answered, "in_date"].dt.date.astype(str)
+        response_dates = data.loc[answered, "out_date"].dt.date.astype(str)
+        data.loc[answered, "business_days"] = np.busday_count(
+            entry_dates.to_numpy(dtype="datetime64[D]") + np.timedelta64(1, "D"),
+            response_dates.to_numpy(dtype="datetime64[D]") + np.timedelta64(1, "D"),
+        )
+        data.loc[answered, "calendar_days"] = (
+            data.loc[answered, "out_date"] - data.loc[answered, "in_date"]
+        ).dt.days
+        data["on_time"] = data["answered"] & (data["business_days"] <= 15)
+        frames.append(data)
+
+    requests = pd.concat(frames, ignore_index=True)
+    submission_dir = lab_dir / "submission"
+    submission_dir.mkdir(exist_ok=True)
+
+    channel_summary = (
+        requests.groupby("channel", sort=True)
+        .agg(
+            requests=("channel", "size"),
+            answered=("answered", "sum"),
+            pending=("answered", lambda values: (~values).sum()),
+            median_business_days=("business_days", "median"),
+            on_time_rate=("on_time", "mean"),
+        )
+        .reset_index()
+    )
+    channel_summary.to_csv(submission_dir / "channel_summary.csv", index=False)
+
+    yearly_summary = (
+        requests.groupby(["year", "channel"], sort=True)
+        .agg(
+            requests=("channel", "size"),
+            pending=("answered", lambda values: (~values).sum()),
+            on_time_rate=("on_time", "mean"),
+        )
+        .reset_index()
+    )
+    yearly_summary.to_csv(submission_dir / "yearly_summary.csv", index=False)
+
+    day_order = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    entry_day_summary = (
+        requests.groupby("day_name", sort=False)
+        .agg(
+            requests=("day_name", "size"),
+            median_calendar_days=("calendar_days", "median"),
+            median_business_days=("business_days", "median"),
+        )
+        .reindex(day_order)
+        .reset_index()
+    )
+    entry_day_summary.to_csv(
+        submission_dir / "entry_day_summary.csv",
+        index=False,
+    )
+
+    return channel_summary, yearly_summary, entry_day_summary
+
+pregunta_01()
