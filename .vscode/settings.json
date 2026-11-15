@@ -1,6 +1,6 @@
 {
     "python.testing.pytestArgs": [
-        "."
+        "LAB_12_cohortes_de_clientes"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true
